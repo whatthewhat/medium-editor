@@ -653,6 +653,10 @@ MediumEditor.extensions = {};
          * <blockquote> container, they are the elements returned.
          */
         splitByBlockElements: function (element) {
+            if (element.nodeType !== 3 && element.nodeType !== 1) {
+                return [];
+            }
+
             var toRet = [],
                 blockElementQuery = MediumEditor.util.blockContainerElementNames.join(',');
 
@@ -664,7 +668,7 @@ MediumEditor.extensions = {};
                 var child = element.childNodes[i];
                 if (child.nodeType === 3) {
                     toRet.push(child);
-                } else {
+                } else if (child.nodeType === 1) {
                     var blockElements = child.querySelectorAll(blockElementQuery);
                     if (blockElements.length === 0) {
                         toRet.push(child);
@@ -6118,7 +6122,8 @@ MediumEditor.extensions = {};
         }
 
         if (action === 'image') {
-            return this.options.ownerDocument.execCommand('insertImage', false, this.options.contentWindow.getSelection());
+            var src = this.options.contentWindow.getSelection().toString().trim();
+            return this.options.ownerDocument.execCommand('insertImage', false, src);
         }
 
         /* Issue: https://github.com/yabwe/medium-editor/issues/595
