@@ -742,7 +742,7 @@ describe('Buttons TestCase', function () {
             fireEvent(button, 'click');
 
             expect(this.el.innerHTML).toContain('<img src="http://i.imgur.com/twlXfUq.jpg">');
-            expect(document.execCommand).toHaveBeenCalledWith('insertImage', false, window.getSelection());
+            expect(document.execCommand).toHaveBeenCalledWith('insertImage', false, 'http://i.imgur.com/twlXfUq.jpg');
         });
     });
 
