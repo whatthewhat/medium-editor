@@ -5769,16 +5769,69 @@ MediumEditor.extensions = {};
     }
 
     function handleDisabledEnterKeydown(event, element) {
-        if (this.options.disableReturn || element.getAttribute('data-disable-return')) {
-            event.preventDefault();
-        } else if (this.options.disableDoubleReturn || element.getAttribute('data-disable-double-return')) {
-            var node = MediumEditor.selection.getSelectionStart(this.options.ownerDocument);
+        if (!this.options.singleEnterBlockElement) {
 
-            // if current text selection is empty OR previous sibling text is empty OR it is not a list
-            if ((node && node.textContent.trim() === '' && node.nodeName.toLowerCase() !== 'li') ||
-                (node.previousElementSibling && node.previousElementSibling.nodeName.toLowerCase() !== 'br' &&
-                 node.previousElementSibling.textContent.trim() === '')) {
+            var p = MediumEditor.selection.getSelectionStart(this.options.ownerDocument),
+                caretPositions = MediumEditor.selection.getCaretOffsets(p),
+                nodeHtml = p.innerHTML,
+                textLeft,
+                textRight,
+                newEl,
+                allChildNodes,
+                containsBR;
+
+            //if not a <p> tag
+            if (p.nodeName.toLowerCase() !== 'p') {
+                return;
+            }
+
+            textLeft = nodeHtml.substring(0, caretPositions.left);
+            textRight = nodeHtml.substring(caretPositions.left, nodeHtml.length);
+
+            //if cursor is at the end of line or
+            //if cursor is at the beginning of line, behaviour of enter should not change
+            if (textRight === '' || textLeft === '') {
+                return;
+            }
+
+            event.preventDefault();
+
+            //loop through all children to find out if br tag exists
+            containsBR = false;
+            allChildNodes = p.childNodes;
+            for (var i = 0; i < allChildNodes.length; i++) {
+                if (allChildNodes[i].nodeName.toLowerCase() === 'br') {
+                    containsBR = true;
+                    break;
+                }
+            }
+
+            //if enter is being pressed twice
+            if (containsBR === true) {
+                p.innerHTML = textLeft;
+                var newPElement = document.createElement('p');
+                textRight = textRight.substring(4, textRight.length);
+                newPElement.innerHTML = textRight;
+                p.parentNode.insertBefore(newPElement, p.nextSibling);
+                MediumEditor.selection.moveCursor(this.options.ownerDocument, newPElement, 1);
+            } else {
+                newEl = textLeft + '<br/>' + textRight;
+                p.innerHTML = newEl;
+                MediumEditor.selection.moveCursor(this.options.ownerDocument, p, 1);
+            }
+        } else {
+
+            if (this.options.disableReturn || element.getAttribute('data-disable-return')) {
                 event.preventDefault();
+            } else if (this.options.disableDoubleReturn || element.getAttribute('data-disable-double-return')) {
+                var node = MediumEditor.selection.getSelectionStart(this.options.ownerDocument);
+
+                // if current text selection is empty OR previous sibling text is empty OR it is not a list
+                if ((node && node.textContent.trim() === '' && node.nodeName.toLowerCase() !== 'li') ||
+                    (node.previousElementSibling && node.previousElementSibling.nodeName.toLowerCase() !== 'br' &&
+                    node.previousElementSibling.textContent.trim() === '')) {
+                    event.preventDefault();
+                }
             }
         }
     }
@@ -5897,6 +5950,10 @@ MediumEditor.extensions = {};
     }
 
     function handleKeyup(event) {
+        if (!this.options.singleEnterBlockElement) {
+            return;
+        }
+
         var node = MediumEditor.selection.getSelectionStart(this.options.ownerDocument),
             tagName;
 
@@ -6136,7 +6193,7 @@ MediumEditor.extensions = {};
         }
 
         // disabling return or double return
-        if (this.options.disableReturn || this.options.disableDoubleReturn) {
+        if (this.options.disableReturn || this.options.disableDoubleReturn || !this.options.singleEnterBlockElement) {
             this.subscribe('editableKeydownEnter', handleDisabledEnterKeydown.bind(this));
         } else {
             for (i = 0; i < this.elements.length; i += 1) {
@@ -6852,6 +6909,7 @@ MediumEditor.extensions = {};
         disableReturn: false,
         disableDoubleReturn: false,
         disableExtraSpaces: false,
+        singleEnterBlockElement: true,
         disableEditing: false,
         autoLink: false,
         elementsContainer: false,
